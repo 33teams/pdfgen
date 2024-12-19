@@ -1,0 +1,28 @@
+{
+  "name": "@33teams/pdfgen",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "examples": "npm run example:complex && npm run example:simple",
+    "example:complex": "concurrently --kill-others --success first \"npm:example:complex:*\"",
+    "preexample:complex:generate": "wait-on --log --timeout 10000 http-get://localhost:61234",
+    "example:complex:generate": "npm start -- --url http://localhost:61234/index.html --output output/aurorae.pdf",
+    "example:complex:serve": "serve --listen 61234 examples/aurorae",
+    "example:simple": "npm start -- --input examples/text.html --output output/text.pdf",
+    "start": "node src/cli.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Jonathan Sharpe <jon@33teams.com>",
+  "license": "UNLICENSED",
+  "description": "Testing out direct PDF generation with Puppeteer",
+  "devDependencies": {
+    "@types/node": "^20.17.10",
+    "concurrently": "^9.1.0",
+    "serve": "^14.2.4",
+    "wait-on": "^8.0.1"
+  },
+  "dependencies": {
+    "puppeteer": "^23.11.0"
+  }
+}
