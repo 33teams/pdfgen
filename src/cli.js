@@ -3,7 +3,9 @@ import { parseArgs } from "node:util";
 
 import { renderText, renderUrl } from "./puppeteer.js";
 
-const { values: { input, output, url } } = parseArgs({
+const {
+	values: { input, output, url },
+} = parseArgs({
 	allowPositionals: false,
 	options: {
 		input: { short: "i", type: "string" },

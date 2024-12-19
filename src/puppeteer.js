@@ -33,7 +33,9 @@ export async function renderUrl(url) {
 async function getPdfData(loadContent, options) {
 	const browser = await puppeteer.launch({ dumpio: true });
 	const page = await browser.newPage();
-	page.on("console", (message) => console[message.type()]("[BROWSER]", message.text()));
+	page.on("console", (message) =>
+		console[message.type()]("[BROWSER]", message.text()),
+	);
 	await loadContent(page);
 	await page.evaluate(() => {
 		window.__pagedjs_render_complete__ = false;
@@ -44,8 +46,12 @@ async function getPdfData(loadContent, options) {
 				window.__pagedjs_render_complete__ = true;
 			},
 		};
-	})
-	await page.addScriptTag({ url: "https://unpkg.com/pagedjs@0.4.3/dist/paged.polyfill.min.js" });
-	await page.waitForFunction(() => window.__pagedjs_render_complete__ === true)
-	return page.pdf({ ...options, preferCSSPageSize: true }).finally(() => browser.close());
+	});
+	await page.addScriptTag({
+		url: "https://unpkg.com/pagedjs@0.4.3/dist/paged.polyfill.min.js",
+	});
+	await page.waitForFunction(() => window.__pagedjs_render_complete__ === true);
+	return page
+		.pdf({ ...options, preferCSSPageSize: true })
+		.finally(() => browser.close());
 }
