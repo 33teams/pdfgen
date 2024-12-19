@@ -4,12 +4,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "examples": "npm run example:complex && npm run example:simple",
+    "examples": "npm run example:complex && npm run example:pagedjs && npm run example:simple",
     "example:complex": "concurrently --kill-others --success first \"npm:example:complex:*\"",
     "preexample:complex:generate": "wait-on --log --timeout 10000 http-get://localhost:61234",
     "example:complex:generate": "npm start -- --url http://localhost:61234/index.html --output output/aurorae.pdf",
     "example:complex:serve": "serve --listen 61234 examples/aurorae",
+    "example:pagedjs": "npm run example:pagedjs:complex && npm run example:pagedjs:simple",
+    "example:pagedjs:complex": "pagedjs-cli --output output/paged-aurorae.pdf examples/aurorae/index.html",
+    "example:pagedjs:simple": "pagedjs-cli --output output/paged-text.pdf examples/text.html",
     "example:simple": "npm start -- --input examples/text.html --output output/text.pdf",
+    "pagedjs": "pagedjs-cli --output output/paged.pdf examples/aurorae/index.html",
     "start": "node src/cli.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -23,6 +27,7 @@
     "wait-on": "^8.0.1"
   },
   "dependencies": {
+    "pagedjs-cli": "^0.4.3",
     "puppeteer": "^23.11.0"
   }
 }
