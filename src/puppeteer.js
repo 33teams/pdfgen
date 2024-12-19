@@ -37,6 +37,19 @@ async function getPdfData(loadContent, options) {
 		console[message.type()]("[BROWSER]", message.text()),
 	);
 	await loadContent(page);
+	await applyPagedJs(page);
+	return page
+		.pdf({ ...options, preferCSSPageSize: true })
+		.finally(() => browser.close());
+}
+
+/**
+ * Add {@link https://pagedjs.org/|Paged.js} and wait for it to render.
+ *
+ * @param {import("puppeteer").Page} page
+ * @returns {Promise<void>}
+ */
+async function applyPagedJs(page) {
 	await page.evaluate(() => {
 		window.__pagedjs_render_complete__ = false;
 		window.PagedConfig = {
@@ -50,8 +63,8 @@ async function getPdfData(loadContent, options) {
 	await page.addScriptTag({
 		url: "https://unpkg.com/pagedjs@0.4.3/dist/paged.polyfill.min.js",
 	});
-	await page.waitForFunction(() => window.__pagedjs_render_complete__ === true);
-	return page
-		.pdf({ ...options, preferCSSPageSize: true })
-		.finally(() => browser.close());
+	await page.waitForFunction(
+		() => window.__pagedjs_render_complete__ === true,
+		{ polling: 500 },
+	);
 }
