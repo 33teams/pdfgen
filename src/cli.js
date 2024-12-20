@@ -4,12 +4,14 @@ import { parseArgs } from "node:util";
 import { renderText, renderUrl } from "./puppeteer.js";
 
 const {
-	values: { input, output, url },
+	values: { input, output, paged, url },
 } = parseArgs({
+	allowNegative: true,
 	allowPositionals: false,
 	options: {
 		input: { short: "i", type: "string" },
 		output: { short: "o", type: "string" },
+		paged: { short: "p", type: "boolean", default: true },
 		url: { short: "u", type: "string" },
 	},
 	strict: true,
@@ -17,8 +19,8 @@ const {
 
 try {
 	const data = await (url
-		? renderUrl(new URL(url))
-		: renderText(await readFile(input, "utf-8")));
+		? renderUrl(new URL(url), paged)
+		: renderText(await readFile(input, "utf-8"), paged));
 	await writeFile(output, data);
 	process.exit(0);
 } catch (err) {

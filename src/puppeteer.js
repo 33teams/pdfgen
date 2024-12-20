@@ -7,39 +7,45 @@ const WAIT_FOR = {
 
 /**
  * @param {string} text
+ * @param {boolean} paged
  * @returns {Promise<Uint8Array>}
  */
-export async function renderText(text) {
+export async function renderText(text, paged) {
 	return getPdfData(async (page) => {
 		await page.setContent(text, WAIT_FOR);
-	});
+	}, { paged });
 }
 
 /**
  * @param {URL} url
+ * @param {boolean} paged
  * @returns {Promise<Uint8Array>}
  */
-export async function renderUrl(url) {
+export async function renderUrl(url, paged) {
 	return getPdfData(async (page) => {
 		await page.goto(url.toString(), WAIT_FOR);
-	});
+	}, { paged });
 }
 
 /**
  * @param {(page: import("puppeteer").Page) => Promise<void>} loadContent
- * @param {import("puppeteer").PDFOptions=} options
+ * @param {{ paged: boolean }=} options
+ * @param {import("puppeteer").PDFOptions=} puppeteerOptions
  * @returns {Promise<Uint8Array>}
  */
-async function getPdfData(loadContent, options) {
+async function getPdfData(loadContent, { paged } = {}, puppeteerOptions = {}) {
 	const browser = await puppeteer.launch({ dumpio: true });
 	const page = await browser.newPage();
 	page.on("console", (message) =>
 		console[message.type()]("[BROWSER]", message.text()),
 	);
 	await loadContent(page);
-	await applyPagedJs(page);
+	if (paged) {
+		puppeteerOptions.preferCSSPageSize ??= true;
+		await applyPagedJs(page);
+	}
 	return page
-		.pdf({ ...options, preferCSSPageSize: true })
+		.pdf({ ...puppeteerOptions })
 		.finally(() => browser.close());
 }
 
