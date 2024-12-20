@@ -11,9 +11,12 @@ const WAIT_FOR = {
  * @returns {Promise<Uint8Array>}
  */
 export async function renderText(text, paged) {
-	return getPdfData(async (page) => {
-		await page.setContent(text, WAIT_FOR);
-	}, { paged });
+	return getPdfData(
+		async (page) => {
+			await page.setContent(text, WAIT_FOR);
+		},
+		{ paged },
+	);
 }
 
 /**
@@ -22,9 +25,12 @@ export async function renderText(text, paged) {
  * @returns {Promise<Uint8Array>}
  */
 export async function renderUrl(url, paged) {
-	return getPdfData(async (page) => {
-		await page.goto(url.toString(), WAIT_FOR);
-	}, { paged });
+	return getPdfData(
+		async (page) => {
+			await page.goto(url.toString(), WAIT_FOR);
+		},
+		{ paged },
+	);
 }
 
 /**
@@ -44,9 +50,7 @@ async function getPdfData(loadContent, { paged } = {}, puppeteerOptions = {}) {
 		puppeteerOptions.preferCSSPageSize ??= true;
 		await applyPagedJs(page);
 	}
-	return page
-		.pdf({ ...puppeteerOptions })
-		.finally(() => browser.close());
+	return page.pdf({ ...puppeteerOptions }).finally(() => browser.close());
 }
 
 /**
@@ -56,21 +60,26 @@ async function getPdfData(loadContent, { paged } = {}, puppeteerOptions = {}) {
  * @returns {Promise<void>}
  */
 async function applyPagedJs(page) {
-	await page.evaluate(() => {
-		window.__pagedjs_render_complete__ = false;
-		window.PagedConfig = {
-			auto: true,
-			after() {
-				console.debug("render complete");
-				window.__pagedjs_render_complete__ = true;
-			},
-		};
-	});
+	const propertyName = "__pagedjs_render_complete__";
+	await page.evaluate(
+		({ propertyName }) => {
+			window[propertyName] = false;
+			window.PagedConfig = {
+				auto: true,
+				after() {
+					console.debug("render complete");
+					window[propertyName] = true;
+				},
+			};
+		},
+		{ propertyName },
+	);
 	await page.addScriptTag({
 		url: "https://unpkg.com/pagedjs@0.4.3/dist/paged.polyfill.min.js",
 	});
 	await page.waitForFunction(
-		() => window.__pagedjs_render_complete__ === true,
+		({ propertyName }) => window[propertyName] === true,
 		{ polling: 500 },
+		{ propertyName },
 	);
 }
