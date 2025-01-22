@@ -28,6 +28,6 @@
   },
   "dependencies": {
     "pagedjs-cli": "^0.4.3",
-    "puppeteer": "^23.11.0"
+    "puppeteer": "^24.1.0"
   }
 }
