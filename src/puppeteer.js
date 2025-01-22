@@ -42,9 +42,7 @@ export async function renderUrl(url, paged) {
 async function getPdfData(loadContent, { paged } = {}, puppeteerOptions = {}) {
 	const browser = await puppeteer.launch({ dumpio: true });
 	const page = await browser.newPage();
-	page.on("console", (message) =>
-		console[message.type()]("[BROWSER]", message.text()),
-	);
+	logEvents(page);
 	await loadContent(page);
 	if (paged) {
 		puppeteerOptions.preferCSSPageSize ??= true;
@@ -63,23 +61,69 @@ async function applyPagedJs(page) {
 	const propertyName = "__pagedjs_render_complete__";
 	await page.evaluate(
 		({ propertyName }) => {
-			window[propertyName] = false;
-			window.PagedConfig = {
-				auto: true,
-				after() {
-					console.debug("render complete");
-					window[propertyName] = true;
-				},
-			};
+			window[propertyName] = null;
+			window.PagedConfig = { auto: false };
 		},
 		{ propertyName },
 	);
 	await page.addScriptTag({
-		url: "https://unpkg.com/pagedjs@0.4.3/dist/paged.polyfill.min.js",
+		url: "https://unpkg.com/pagedjs@0.5.0-beta.2/dist/paged.polyfill.min.js",
 	});
+	await page.evaluate(
+		({ propertyName }) => {
+			window.PagedPolyfill.preview()
+				.then(() => {
+					window[propertyName] = true;
+				})
+				.catch((err) => {
+					console.error(err);
+					window[propertyName] = false;
+				});
+		},
+		{ propertyName },
+	);
 	await page.waitForFunction(
-		({ propertyName }) => window[propertyName] === true,
+		({ propertyName }) => window[propertyName] !== null,
 		{ polling: 500 },
 		{ propertyName },
 	);
+	const success = await page.evaluate(
+		({ propertyName }) => {
+			return window[propertyName];
+		},
+		{ propertyName },
+	);
+	if (success === false) {
+		throw new Error("rendering failed");
+	}
+}
+
+/**
+ * @param {import("puppeteer").Page} page
+ * @returns {void}
+ */
+function logEvents(page) {
+	page.on("console", (message) => {
+		const type = message.type();
+		const text = message.text();
+		const args =
+			text === "JSHandle@error"
+				? message
+						.args()
+						.map((arg) => arg.remoteObject().description ?? "<no description>")
+				: [text];
+		switch (type) {
+			case "error":
+			case "debug":
+			case "info":
+			case "trace":
+			case "warn":
+				console[type]("[BROWSER] %s", ...args);
+				break;
+			default:
+				console.log("[BROWSER] %s", ...args);
+		}
+	});
+	page.on("error", (err) => console.error("[BROWSER]", err));
+	page.on("pageerror", (err) => console.error("[BROWSER]", err));
 }
