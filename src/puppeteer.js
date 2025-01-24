@@ -40,9 +40,12 @@ export async function renderUrl(url, paged) {
  * @returns {Promise<Uint8Array>}
  */
 async function getPdfData(loadContent, { paged } = {}, puppeteerOptions = {}) {
-	const browser = await puppeteer.launch({ dumpio: true });
+	const browser = await puppeteer.launch({
+		args: ["--disable-dev-shm-usage", "--export-tagged-pdf"],
+		dumpio: true,
+	});
 	const page = await browser.newPage();
-	logEvents(page);
+	await logEvents(page);
 	await loadContent(page);
 	if (paged) {
 		puppeteerOptions.preferCSSPageSize ??= true;
@@ -59,20 +62,19 @@ async function getPdfData(loadContent, { paged } = {}, puppeteerOptions = {}) {
  */
 async function applyPagedJs(page) {
 	const propertyName = "__pagedjs_render_complete__";
-	await page.evaluate(
-		({ propertyName }) => {
-			window[propertyName] = null;
-			window.PagedConfig = { auto: false };
-		},
-		{ propertyName },
-	);
+	await page.evaluate(() => {
+		window.PagedConfig = { auto: false };
+	});
 	await page.addScriptTag({
 		url: "https://unpkg.com/pagedjs@0.5.0-beta.2/dist/paged.polyfill.min.js",
 	});
 	await page.evaluate(
 		({ propertyName }) => {
+			window[propertyName] = null;
+			console.info("render started");
 			window.PagedPolyfill.preview()
 				.then(() => {
+					console.info("render complete");
 					window[propertyName] = true;
 				})
 				.catch((err) => {
@@ -84,7 +86,7 @@ async function applyPagedJs(page) {
 	);
 	await page.waitForFunction(
 		({ propertyName }) => window[propertyName] !== null,
-		{ polling: 500 },
+		{ polling: 500, timeout: 120_000 },
 		{ propertyName },
 	);
 	const success = await page.evaluate(
@@ -100,9 +102,27 @@ async function applyPagedJs(page) {
 
 /**
  * @param {import("puppeteer").Page} page
- * @returns {void}
+ * @returns {Promise<void>}
  */
-function logEvents(page) {
+async function logEvents(page) {
+	await page.setRequestInterception(true);
+	page.on("request", (req) => {
+		const url = new URL(req.url());
+		if (
+			[
+				"cdn.syndication.twimg.com",
+				"embed.typeform.com",
+				"platform.twitter.com",
+			].includes(url.host)
+		) {
+			req.abort();
+			return;
+		}
+		if (url.protocol !== "data:") {
+			console.info("%s %s", req.method(), req.url());
+		}
+		req.continue();
+	});
 	page.on("console", (message) => {
 		const type = message.type();
 		const text = message.text();
