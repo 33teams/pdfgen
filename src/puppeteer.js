@@ -46,6 +46,11 @@ async function getPdfData(loadContent, { paged } = {}, puppeteerOptions = {}) {
 	});
 	const page = await browser.newPage();
 	await logEvents(page);
+	await skipRequests(page, [
+		"cdn.syndication.twimg.com",
+		"embed.typeform.com",
+		"platform.twitter.com",
+	]);
 	await loadContent(page);
 	if (paged) {
 		puppeteerOptions.preferCSSPageSize ??= true;
@@ -102,20 +107,15 @@ async function applyPagedJs(page) {
 
 /**
  * @param {import("puppeteer").Page} page
+ * @param {string[]} hosts
  * @returns {Promise<void>}
  */
-async function logEvents(page) {
+async function skipRequests(page, hosts) {
 	await page.setRequestInterception(true);
 	page.on("request", (req) => {
 		const url = new URL(req.url());
-		if (
-			[
-				"cdn.syndication.twimg.com",
-				"embed.typeform.com",
-				"platform.twitter.com",
-			].includes(url.host)
-		) {
-			req.abort();
+		if (hosts.includes(url.host)) {
+			req.abort("failed");
 			return;
 		}
 		if (url.protocol !== "data:") {
@@ -123,6 +123,13 @@ async function logEvents(page) {
 		}
 		req.continue();
 	});
+}
+
+/**
+ * @param {import("puppeteer").Page} page
+ * @returns {Promise<void>}
+ */
+async function logEvents(page) {
 	page.on("console", (message) => {
 		const type = message.type();
 		const text = message.text();
