@@ -87,6 +87,40 @@ async function applyPagedJs(page) {
 		({ propertyName }) => {
 			window[propertyName] = null;
 			console.info("render started");
+			/**
+			 * Register custom
+			 * {@link https://pagedjs.org/documentation/10-handlers-hooks-and-custom-javascript/|handler}
+			 * to report on granular Paged events
+			 */
+			window.Paged.registerHandlers(class LoggingHandler extends window.Paged.Handler {
+				constructor(chunker, polisher, caller) {
+					super(chunker, polisher, caller);
+					this.page = 1;
+				}
+				//#region previewer
+				afterPreview(pages) {
+					console.info(`previewed ${pages.length} pages`);
+				}
+				//#endregion
+				//#region chunker
+				beforeParsed() {
+					console.debug("beforeParsed");
+				}
+				afterParsed() {
+					console.debug("afterParsed");
+				}
+				beforePageLayout() {
+					console.debug(`beforePageLayout - page ${this.page}`);
+				}
+				afterPageLayout() {
+					console.debug(`afterPageLayout - page ${this.page}`);
+					this.page++;
+				}
+				afterRendered(pages) {
+					console.info(`chunked ${pages.length} pages`);
+				}
+				//#endregion
+			});
 			window.PagedPolyfill.preview()
 				.then(() => {
 					console.info("render complete");
