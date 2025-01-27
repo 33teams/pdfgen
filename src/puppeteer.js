@@ -16,6 +16,11 @@ export async function renderText(text, paged) {
 			await page.setContent(text, WAIT_FOR);
 		},
 		{ paged },
+		{
+			displayHeaderFooter: false,
+			margin: undefined,
+			printBackground: true,
+		},
 	);
 }
 
@@ -30,16 +35,21 @@ export async function renderUrl(url, paged) {
 			await page.goto(url.toString(), WAIT_FOR);
 		},
 		{ paged },
+		{
+			displayHeaderFooter: false,
+			margin: undefined,
+			printBackground: true,
+		},
 	);
 }
 
 /**
  * @param {(page: import("puppeteer").Page) => Promise<void>} loadContent
  * @param {{ paged: boolean }=} options
- * @param {import("puppeteer").PDFOptions=} puppeteerOptions
+ * @param {import("puppeteer").PDFOptions=} pdfOptions
  * @returns {Promise<Uint8Array>}
  */
-async function getPdfData(loadContent, { paged } = {}, puppeteerOptions = {}) {
+async function getPdfData(loadContent, { paged } = {}, pdfOptions = {}) {
 	const browser = await puppeteer.launch({
 		args: ["--disable-dev-shm-usage", "--export-tagged-pdf"],
 		dumpio: true,
@@ -53,10 +63,10 @@ async function getPdfData(loadContent, { paged } = {}, puppeteerOptions = {}) {
 	]);
 	await loadContent(page);
 	if (paged) {
-		puppeteerOptions.preferCSSPageSize ??= true;
+		pdfOptions.preferCSSPageSize ??= true;
 		await applyPagedJs(page);
 	}
-	return page.pdf({ ...puppeteerOptions }).finally(() => browser.close());
+	return page.pdf({ ...pdfOptions }).finally(() => browser.close());
 }
 
 /**
