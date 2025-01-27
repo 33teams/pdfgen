@@ -21,13 +21,13 @@
   "license": "UNLICENSED",
   "description": "Testing out direct PDF generation with Puppeteer",
   "devDependencies": {
-    "@types/node": "^20.17.10",
-    "concurrently": "^9.1.0",
+    "@types/node": "^20.17.16",
+    "concurrently": "^9.1.2",
     "serve": "^14.2.4",
-    "wait-on": "^8.0.1"
+    "wait-on": "^8.0.2"
   },
   "dependencies": {
     "pagedjs-cli": "^0.4.3",
-    "puppeteer": "^24.1.0"
+    "puppeteer": "^24.1.1"
   }
 }
